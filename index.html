@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simulador de Postas: Anatomía del Espectro RF</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-orange: #f97316;
+            --accent-red: #ef4444;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Top Bar & Timer */
+        .header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge-posta {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .timer-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent-orange);
+            background: rgba(249, 115, 22, 0.1);
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(249, 115, 22, 0.2);
+        }
+
+        .timer-box.urgent {
+            color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.2);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+            width: 20%;
+            transition: width 0.4s ease;
+        }
+
+        /* Posta Card */
+        .stage-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .stage-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.3;
+        }
+
+        .stage-desc {
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            line-height: 1.4;
+        }
+
+        /* Questions */
+        .question-item {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .q-text {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .options-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .opt-btn {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .opt-btn:active {
+            transform: scale(0.98);
+        }
+
+        .opt-btn.selected {
+            border-color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.15);
+        }
+
+        .opt-btn.correct {
+            border-color: var(--accent-green) !important;
+            background: rgba(34, 197, 94, 0.2) !important;
+            color: #4ade80 !important;
+        }
+
+        .opt-btn.incorrect {
+            border-color: var(--accent-red) !important;
+            background: rgba(239, 68, 68, 0.2) !important;
+            color: #f87171 !important;
+        }
+
+        .feedback-box {
+            font-size: 0.85rem;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 6px;
+            display: none;
+            line-height: 1.4;
+        }
+
+        .feedback-box.show {
+            display: block;
+        }
+
+        .feedback-box.correct {
+            background: rgba(34, 197, 94, 0.15);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .feedback-box.incorrect {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* Action Buttons */
+        .btn-action {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: #ffffff;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:disabled {
+            background: #334155;
+            color: #64748b;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Screen States */
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .score-summary {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 20px 0;
+        }
+
+        .score-num {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: var(--accent-blue);
+        }
+
+        .score-msg {
+            font-size: 1.1rem;
+            color: var(--text-sub);
+        }
+
+        .p-detail {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="screen active">
+        <div class="stage-card">
+            <span class="badge-posta" style="align-self: flex-start;">Simulador Interactivo</span>
+            <h1 class="stage-title" style="font-size: 1.4rem;">Anatomía del Espectro RF: Del Macro al Micro</h1>
+            <p class="stage-desc">
+                Bienvenido al simulador por postas estancas. Resolverás 5 etapas cronometradas sobre espectro de radiofrecuencia, infraestructura, antenas y hardware comercial.
+            </p>
+            <div style="background: rgba(56, 189, 248, 0.08); padding: 12px; border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.2); font-size: 0.85rem; color: #cbd5e1;">
+                ⏱️ <strong>Modalidad Postas:</strong> Dispones de <strong>180 segundos</strong> por cada etapa. Al responder o agotar el tiempo, la etapa se sellará y avanzarás a la siguiente.
+            </div>
+            <button class="btn-action" onclick="startSimulator()">Iniciar Prueba de Postas</button>
+        </div>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div id="quiz-screen" class="screen">
+        <!-- Header status -->
+        <div class="header-card">
+            <div class="header-top">
+                <span id="posta-label" class="badge-posta">Posta 1 / 5</span>
+                <div id="timer-display" class="timer-box">
+                    ⏱️ <span id="timer-sec">180</span>s
+                </div>
+            </div>
+            <div class="progress-bar-bg">
+                <div id="progress-fill" class="progress-bar-fill"></div>
+            </div>
+        </div>
+
+        <!-- Stage Container -->
+        <div class="stage-card">
+            <h2 id="stage-title" class="stage-title">Cargando...</h2>
+            <p id="stage-desc" class="stage-desc">...</p>
+
+            <div id="questions-container" style="display:flex; flex-direction:column; gap:14px;">
+                <!-- Dynamic questions -->
+            </div>
+
+            <button id="submit-btn" class="btn-action" onclick="submitPosta()">Validar y Avanzar Posta ➔</button>
+        </div>
+    </div>
+
+    <!-- RESULTS SCREEN -->
+    <div id="result-screen" class="screen">
+        <div class="stage-card">
+            <span class="badge-posta" style="align-self: flex-start;">Resultados Finales</span>
+            <div class="score-summary">
+                <div class="score-num" id="final-score">0 / 5</div>
+                <div class="score-msg" id="final-msg">¡Evaluación Completada!</div>
+            </div>
+            <div id="breakdown-list" style="display:flex; flex-direction:column; gap:8px;">
+                <!-- Dynamic breakdown -->
+            </div>
+            <button class="btn-action" onclick="resetSimulator()" style="margin-top: 10px;">Reiniciar Simulador</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const stagesData = [
+    {
+        id: 1,
+        title: "Posta 1: Regla de Oro de RF & Banda VHF/UHF (30 MHz - 1 GHz)",
+        desc: "Conceptos fundamentales de longitud de onda, penetración y sistemas Broadcast.",
+        time: 180,
+        questions: [
+            {
+                q: "¿Qué ocurre físicamente con la longitud de onda y la antena a medida que aumenta la frecuencia?",
+                options: [
+                    "La longitud de onda aumenta y requiere antenas más masivas.",
+                    "La longitud de onda disminuye (milimétrica) y la antena se miniaturiza.",
+                    "La longitud de onda se mantiene constante pero requiere mayor altura de torre.",
+                    "La frecuencia no afecta el tamaño físico de los componentes."
+                ],
+                correct: 1,
+                feedback: "Correcto: A mayor frecuencia, menor longitud de onda. El hardware debe encogerse y densificarse."
+            },
+            {
+                q: "¿Cuál de las siguientes tecnologías/marcas es referente en antenas panel y slot multicanal para TV en VHF/UHF?",
+                options: [
+                    "Ubiquiti / UniFi",
+                    "Dielectric / RFS",
+                    "Qualcomm QTM",
+                    "Tarana Wireless"
+                ],
+                correct: 1,
+                feedback: "Correcto: Dielectric y RFS proveen antenas panel y slot multicanal para transmisión de TV en VHF/UHF."
+            }
+        ]
+    },
+    {
+        id: 2,
+        title: "Posta 2: Banda 2.4 GHz ISM (Wi-Fi & Cobertura Local)",
+        desc: "Tecnología de Puntos de Acceso, PoE y monopolos PIFA.",
+        time: 180,
+        questions: [
+            {
+                q: "En despliegues de 2.4 GHz, ¿cómo se alimentan habitualmente los APs compactos a distancia?",
+                options: [
+                    "Mediante fuentes de poder locales de 220V en cada punto.",
+                    "Cables PoE (Power over Ethernet) hasta 100 metros sin fuentes locales.",
+                    "Paneles solares individuales y baterías de litio.",
+                    "Fibra óptica directa con alimentador de corriente continua."
+                ],
+                correct: 1,
+                feedback: "Correcto: En 2.4 GHz los APs usan PoE hasta 100m, eliminando fuentes de poder locales."
+            },
+            {
+                q: "¿Qué tipo de antena interna miniaturizada es estándar en Access Points compactos de 2.4 GHz?",
+                options: [
+                    "Reflectores Parabólicos de 3 metros.",
+                    "Monopolos PIFA (Planar Inverted-F Antenna) y dipolos de media onda.",
+                    "Lentes Cassegrain para 80 GHz.",
+                    "Arrays colineales de 100 metros."
+                ],
+                correct: 1,
+                feedback: "Correcto: Los APs compactos integran monopolos PIFA y arreglos MIMO (2x2, 3x3)."
+            }
+        ]
+    },
+    {
+        id: 3,
+        title: "Posta 3: Banda 5 GHz - 6 GHz (FWA & Alta Capacidad)",
+        desc: "Acceso Inalámbrico Fijo, Coordinación de Frecuencia AFC y Beamforming.",
+        time: 180,
+        questions: [
+            {
+                q: "¿Qué sistema es imperativo en exterior (FWA 6 GHz) para evitar interferencias con enlaces satelitales/existentes?",
+                options: [
+                    "Coordinación Automática de Frecuencia (AFC) conectada vía GNSS.",
+                    "Filtros pasivos de cavidad de bronce.",
+                    "Aumento de la potencia de emisión sin límites.",
+                    "Polarización circular únicamente."
+                ],
+                correct: 0,
+                feedback: "Correcto: El sistema AFC certificado por la FCC evita interferencias mediante sincronización GNSS."
+            },
+            {
+                q: "¿Qué fabricante destaca en esta banda con la plataforma G1 (Base Nodes y Remote Nodes)?",
+                options: [
+                    "Tarana Wireless",
+                    "Shively Labs",
+                    "Jampro Antennas",
+                    "Samsung Link Cell"
+                ],
+                correct: 0,
+                feedback: "Correcto: Tarana Wireless es referente en FWA de alta capacidad con su plataforma G1."
+            }
+        ]
+    },
+    {
+        id: 4,
+        title: "Posta 4: Redes Celulares Sub-6 GHz (FR1) vs mmWave (FR2)",
+        desc: "Arquitectura BBU/RRU, Massive MIMO 64T64R y módulos AiP.",
+        time: 180,
+        questions: [
+            {
+                q: "En una radiobase Sub-6 GHz desglosada, ¿qué medio interconecta la BBU en tierra con la RRU en la cima?",
+                options: [
+                    "Cable coaxial RG-8",
+                    "Enlace infrarrojo",
+                    "Fibra óptica mediante protocolo CPRI / eCPRI",
+                    "Par trenzado UTP Categoría 5e"
+                ],
+                correct: 2,
+                feedback: "Correcto: La conexión CPRI/eCPRI sobre fibra óptica lleva los datos de la BBU a la RRU."
+            },
+            {
+                q: "En mmWave (FR2, 24.25-52.6 GHz), ¿cómo se integra la antena en el hardware?",
+                options: [
+                    "Como una torre reticulada de 50 metros.",
+                    "Mediante módulos AiP (Antenna in Package) en microchips con decenas/cientos de elementos.",
+                    "Usando antenas Yagi externas de aluminio.",
+                    "Mediante paraboloides de 2 metros montados en mástiles."
+                ],
+                correct: 1,
+                feedback: "Correcto: En mmWave la antena se convierte en un microchip mediante tecnología AiP (Antenna in Package)."
+            }
+        ]
+    },
+    {
+        id: 5,
+        title: "Posta 5: Backhaul de Microondas (Banda E: 6 - 80 GHz) & Ecosistema",
+        desc: "Cables invisibles de la red, lentes Cassegrain y flujo end-to-end.",
+        time: 180,
+        questions: [
+            {
+                q: "¿Qué tipo de antena se utiliza en 80 GHz para lograr ganancia superior a 40 dBi en enlaces de transporte?",
+                options: [
+                    "Antenas Dipolo Omnidireccionales",
+                    "Reflectores con Lentes Cassegrain y alineamiento micrométrico",
+                    "Parches PIFA de plástico",
+                    "Antenas Slot de TV"
+                ],
+                correct: 1,
+                feedback: "Correcto: En Banda E (80 GHz) se usan Lentes Cassegrain hiper-rígidos para alineamiento micrométrico."
+            },
+            {
+                q: "En la travesía de una llamada desde el celular del usuario hasta el Core, ¿cuál es el orden correcto de componentes?",
+                options: [
+                    "Core -> BBU -> Small Cell mmWave -> Backhaul",
+                    "Small Cell (mmWave) -> Panel Massive MIMO (Sub-6 GHz/BBU) -> Backhaul Microondas (Banda E) -> Core",
+                    "Backhaul -> Torre VHF -> AP Wi-Fi -> Usuario",
+                    "Antena Yagi -> Cable Coaxial -> Servidor local"
+                ],
+                correct: 1,
+                feedback: "Correcto: El usuario conecta a mmWave/Sub-6 GHz, la radiobase procesa con BBU, transmite via Backhaul Banda E al Core."
+            }
+        ]
+    }
+];
+
+let currentStageIdx = 0;
+let timerInterval = null;
+let timeRemaining = 180;
+let stageScores = [];
+let userSelections = {};
+
+function startSimulator() {
+    document.getElementById('start-screen').classList.remove('active');
+    document.getElementById('quiz-screen').classList.add('active');
+    currentStageIdx = 0;
+    stageScores = [];
+    loadStage(currentStageIdx);
+}
+
+function loadStage(idx) {
+    clearInterval(timerInterval);
+    const stage = stagesData[idx];
+    
+    // UI labels
+    document.getElementById('posta-label').innerText = `Posta ${stage.id} / ${stagesData.length}`;
+    document.getElementById('stage-title').innerText = stage.title;
+    document.getElementById('stage-desc').innerText = stage.desc;
+    document.getElementById('progress-fill').style.width = `${((idx + 1) / stagesData.length) * 100}%`;
+
+    // Questions render
+    const container = document.getElementById('questions-container');
+    container.innerHTML = '';
+    userSelections = {};
+
+    stage.questions.forEach((qObj, qIdx) => {
+        const qDiv = document.createElement('div');
+        qDiv.className = 'question-item';
+        
+        let html = `<div class="q-text">${qIdx + 1}. ${qObj.q}</div>`;
+        html += `<div class="options-group">`;
+        qObj.options.forEach((optText, oIdx) => {
+            html += `<button class="opt-btn" id="q_${qIdx}_opt_${oIdx}" onclick="selectOption(${qIdx}, ${oIdx})">
+                <span style="font-weight:bold; color:var(--accent-blue);">${String.fromCharCode(65 + oIdx)})</span> ${optText}
+            </button>`;
+        });
+        html += `</div>`;
+        html += `<div id="feedback_${qIdx}" class="feedback-box"></div>`;
+        
+        qDiv.innerHTML = html;
+        container.appendChild(qDiv);
+    });
+
+    // Reset Submit button
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.innerText = idx === stagesData.length - 1 ? "Finalizar Simulador" : "Validar y Avanzar Posta ➔";
+    submitBtn.disabled = false;
+
+    // Start Timer
+    timeRemaining = stage.time;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay();
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            alert("⏰ ¡Tiempo agotado para esta Posta! Se validarán tus respuestas actuales.");
+            submitPosta(true);
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const timerElem = document.getElementById('timer-sec');
+    const timerBox = document.getElementById('timer-display');
+    timerElem.innerText = timeRemaining;
+    if (timeRemaining <= 20) {
+        timerBox.classList.add('urgent');
+    } else {
+        timerBox.classList.remove('urgent');
+    }
+}
+
+function selectOption(qIdx, oIdx) {
+    userSelections[qIdx] = oIdx;
+    const stage = stagesData[currentStageIdx];
+    stage.questions[qIdx].options.forEach((_, i) => {
+        const btn = document.getElementById(`q_${qIdx}_opt_${i}`);
+        if (i === oIdx) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+}
+
+function submitPosta(forced = false) {
+    clearInterval(timerInterval);
+    const stage = stagesData[currentStageIdx];
+    let correctCount = 0;
+
+    stage.questions.forEach((qObj, qIdx) => {
+        const selectedOpt = userSelections[qIdx];
+        const fbBox = document.getElementById(`feedback_${qIdx}`);
+        
+        qObj.options.forEach((_, oIdx) => {
+            const btn = document.getElementById(`q_${qIdx}_opt_${oIdx}`);
+            btn.onclick = null; // disable clicks
+            
+            if (oIdx === qObj.correct) {
+                btn.classList.add('correct');
+            }
+            if (selectedOpt === oIdx && selectedOpt !== qObj.correct) {
+                btn.classList.add('incorrect');
+            }
+        });
+
+        if (selectedOpt === qObj.correct) {
+            correctCount++;
+            fbBox.className = 'feedback-box show correct';
+            fbBox.innerHTML = `<strong>¡Correcto!</strong> ${qObj.feedback}`;
+        } else {
+            fbBox.className = 'feedback-box show incorrect';
+            fbBox.innerHTML = `<strong>Incorrecto.</strong> ${qObj.feedback}`;
+        }
+    });
+
+    stageScores[currentStageIdx] = {
+        title: stage.title,
+        score: correctCount,
+        total: stage.questions.length
+    };
+
+    const submitBtn = document.getElementById('submit-btn');
+    submitBtn.innerText = currentStageIdx === stagesData.length - 1 ? "Ver Resultados Finales ➔" : "Continuar a Siguiente Posta ➔";
+    submitBtn.onclick = function() {
+        currentStageIdx++;
+        if (currentStageIdx < stagesData.length) {
+            loadStage(currentStageIdx);
+        } else {
+            showResults();
+        }
+    };
+}
+
+function showResults() {
+    document.getElementById('quiz-screen').classList.remove('active');
+    document.getElementById('result-screen').classList.add('active');
+
+    let totalCorrect = 0;
+    let totalQuestions = 0;
+    const breakdown = document.getElementById('breakdown-list');
+    breakdown.innerHTML = '';
+
+    stageScores.forEach((s, idx) => {
+        totalCorrect += s.score;
+        totalQuestions += s.total;
+        
+        const item = document.createElement('div');
+        item.className = 'p-detail';
+        item.innerHTML = `<span>Posta ${idx + 1}: ${s.score}/${s.total} aciertos</span> <strong style="color:${s.score === s.total ? 'var(--accent-green)':'var(--accent-orange)'}">${Math.round((s.score/s.total)*100)}%</strong>`;
+        breakdown.appendChild(item);
+    });
+
+    const percent = Math.round((totalCorrect / totalQuestions) * 100);
+    document.getElementById('final-score').innerText = `${totalCorrect} / ${totalQuestions}`;
+    
+    let msg = "¡Buen intento! Revisa los conceptos del espectro RF.";
+    if (percent >= 80) msg = "🏆 ¡Excelente trabajo! Dominas la anatomía del espectro RF.";
+    else if (percent >= 60) msg = "👍 ¡Buen desempeño! Tienes sólidos conceptos sobre hardware y frecuencia.";
+    document.getElementById('final-msg').innerText = msg;
+}
+
+function resetSimulator() {
+    document.getElementById('result-screen').classList.remove('active');
+    document.getElementById('start-screen').classList.add('active');
+}
+</script>
+
+</body>
+</html>
